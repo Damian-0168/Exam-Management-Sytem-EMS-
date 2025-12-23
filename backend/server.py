@@ -10,6 +10,8 @@ from typing import List
 import uuid
 from datetime import datetime
 
+# Import new routes
+from routes import audit, storage, permissions, config as config_routes
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -20,7 +22,11 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 # Create the main app without a prefix
-app = FastAPI()
+app = FastAPI(
+    title="SEAMS API",
+    description="School Examination & Academic Management System API",
+    version="2.0.0"
+)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
@@ -38,7 +44,24 @@ class StatusCheckCreate(BaseModel):
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {
+        "message": "SEAMS API v2.0",
+        "status": "operational",
+        "features": [
+            "Audit Logging",
+            "Secure PDF Storage",
+            "RBAC Permissions",
+            "System Configuration"
+        ]
+    }
+
+@api_router.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat()
+    }
 
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):
@@ -52,9 +75,16 @@ async def get_status_checks():
     status_checks = await db.status_checks.find().to_list(1000)
     return [StatusCheck(**status_check) for status_check in status_checks]
 
-# Include the router in the main app
+# Include all routers
+api_router.include_router(audit.router)
+api_router.include_router(storage.router)
+api_router.include_router(permissions.router)
+api_router.include_router(config_routes.router)
+
+# Include the main API router in the app
 app.include_router(api_router)
 
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -70,6 +100,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+@app.on_event("startup")
+async def startup_event():
+    logger.info("SEAMS API starting up...")
+    logger.info("API documentation available at /docs")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    logger.info("Shutting down SEAMS API...")
     client.close()
