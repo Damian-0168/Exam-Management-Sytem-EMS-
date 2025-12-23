@@ -2,12 +2,15 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Upload, Eye, Trash2, Download } from 'lucide-react';
+import { Upload, Eye, Trash2, Download, History } from 'lucide-react';
 import { useUploadSubjectPdf, useDeleteSubjectPdf } from '@/hooks/useExamSubjectPdf';
 import { ExamCardPreview } from './ExamCardPreview';
+import { SecurePdfViewer } from './SecurePdfViewer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { logPdfDownload } from '@/utils/pdfSecurity';
+import { useHasPermission } from '@/hooks/usePermissions';
 
 interface SubjectPdfManagerProps {
   examSubjectId: string;
@@ -15,6 +18,7 @@ interface SubjectPdfManagerProps {
   teacherName?: string;
   pdfPath?: string | null;
   canEdit: boolean;
+  schoolName?: string;
 }
 
 export const SubjectPdfManager = ({
@@ -22,11 +26,15 @@ export const SubjectPdfManager = ({
   subjectName,
   teacherName,
   pdfPath,
-  canEdit
+  canEdit,
+  schoolName
 }: SubjectPdfManagerProps) => {
   const [showPreview, setShowPreview] = useState(false);
   const uploadPdf = useUploadSubjectPdf();
   const deletePdf = useDeleteSubjectPdf();
+  
+  const { hasPermission: canDownload } = useHasPermission('download_pdf');
+  const { hasPermission: canDelete } = useHasPermission('delete_pdf');
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -42,7 +50,7 @@ export const SubjectPdfManager = ({
   };
 
   const handleDownload = async () => {
-    if (!pdfPath) return;
+    if (!pdfPath || !canDownload) return;
 
     try {
       const { data, error } = await supabase.storage
@@ -59,6 +67,9 @@ export const SubjectPdfManager = ({
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+
+      // Log the download
+      await logPdfDownload(pdfPath, examSubjectId);
 
       toast({
         title: 'Success',
