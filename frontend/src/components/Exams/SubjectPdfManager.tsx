@@ -116,11 +116,12 @@ export const SubjectPdfManager = ({
                   size="sm"
                   onClick={handleDownload}
                   className="flex-1"
+                  disabled={!canDownload}
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Download
                 </Button>
-                {canEdit && (
+                {canEdit && canDelete && (
                   <Button
                     variant="destructive"
                     size="sm"
