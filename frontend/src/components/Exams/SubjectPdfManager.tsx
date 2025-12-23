@@ -167,15 +167,21 @@ export const SubjectPdfManager = ({
 
         {pdfPath && (
           <Dialog open={showPreview} onOpenChange={setShowPreview}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+            <DialogContent className="max-w-5xl max-h-[95vh] overflow-auto">
               <DialogHeader>
-                <DialogTitle>{subjectName} - Exam Paper</DialogTitle>
+                <DialogTitle className="flex items-center gap-2">
+                  {subjectName} - Exam Paper (Secure View)
+                </DialogTitle>
               </DialogHeader>
               <div className="mt-4">
-                <iframe
-                  src={`https://kcsiqhxghfmrbshmodzi.supabase.co/storage/v1/object/public/exam-pdfs/${pdfPath}`}
-                  className="w-full h-[70vh] rounded-lg border"
-                  title={`${subjectName} Exam Paper`}
+                <SecurePdfViewer
+                  pdfPath={pdfPath}
+                  examSubjectId={examSubjectId}
+                  examName={subjectName}
+                  schoolName={schoolName}
+                  enableWatermark={true}
+                  showControls={true}
+                  width={900}
                 />
               </div>
             </DialogContent>
