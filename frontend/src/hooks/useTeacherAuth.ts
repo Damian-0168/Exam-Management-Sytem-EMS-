@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
+import { auditLogger } from "@/utils/auditLogger";
 
 export interface TeacherProfile {
   id: string;
@@ -80,6 +81,9 @@ export const useTeacherAuth = () => {
 
       if (error) throw error;
 
+      // Log successful login
+      await auditLogger.logLogin();
+
       return { success: true, user: data.user };
     } catch (error: any) {
       return { success: false, error: error.message };
@@ -90,6 +94,9 @@ export const useTeacherAuth = () => {
 
   // Teacher logout
   const signOut = async () => {
+    // Log logout before clearing session
+    await auditLogger.logLogout();
+    
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);
