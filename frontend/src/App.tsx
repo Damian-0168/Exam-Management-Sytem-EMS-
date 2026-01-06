@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useTeacherAuth } from "./hooks/useTeacherAuth";
 import { TeacherAuth } from "./components/Auth/TeacherAuth";
+import { AdminSetup } from "./components/Auth/AdminSetup";
 import { DashboardLayout } from "./components/Layout/DashboardLayout";
 import { Dashboard } from "./components/Dashboard/Dashboard";
 import { StudentManagement } from "./components/Students/StudentManagement";
@@ -32,7 +33,13 @@ const AppContent = () => {
   }
 
   if (!session) {
-    return <TeacherAuth />;
+    return (
+      <Routes>
+        <Route path="/" element={<TeacherAuth />} />
+        <Route path="/admin-setup" element={<AdminSetup />} />
+        <Route path="*" element={<TeacherAuth />} />
+      </Routes>
+    );
   }
 
   return (
