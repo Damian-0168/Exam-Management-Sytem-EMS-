@@ -260,6 +260,19 @@ export const TeacherAuth = () => {
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Sign In
                 </Button>
+                
+                {/* Admin Setup Link */}
+                <div className="text-center pt-4 border-t">
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="text-sm"
+                    onClick={() => navigate('/admin-setup')}
+                  >
+                    <Shield className="h-4 w-4 mr-2" />
+                    Create Admin Account
+                  </Button>
+                </div>
               </form>
             </TabsContent>
             
