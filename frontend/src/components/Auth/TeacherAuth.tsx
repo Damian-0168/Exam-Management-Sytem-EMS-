@@ -12,9 +12,11 @@ import { useTeacherAuth } from '@/hooks/useTeacherAuth';
 import { useSubjects } from '@/hooks/useSubjects';
 import { useSchools } from '@/hooks/useSchools';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Eye, EyeOff, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Loader2, Eye, EyeOff, Plus, Shield } from 'lucide-react';
 
 export const TeacherAuth = () => {
+  const navigate = useNavigate();
   const [signUpData, setSignUpData] = useState({
     name: '',
     email: '',
