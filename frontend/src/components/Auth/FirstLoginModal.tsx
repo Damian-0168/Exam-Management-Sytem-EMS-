@@ -1,1 +1,46 @@
-import { useEffect, useState } from 'react';\nimport { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';\nimport { SubjectSelection } from '@/components/Settings/SubjectSelection';\nimport { useTeacherAuth } from '@/hooks/useTeacherAuth';\nimport { useTeacherProfile } from '@/hooks/useTeacherProfile';\n\ninterface FirstLoginModalProps {\n  onComplete: () => void;\n}\n\nexport const FirstLoginModal = ({ onComplete }: FirstLoginModalProps) => {\n  const [open, setOpen] = useState(false);\n  const { user } = useTeacherAuth();\n  const { data: teacherProfile } = useTeacherProfile(user?.id);\n\n  useEffect(() => {\n    // Show modal if user has no subjects\n    if (teacherProfile && (!teacherProfile.subjects || teacherProfile.subjects.length === 0)) {\n      setOpen(true);\n    } else if (teacherProfile && teacherProfile.subjects && teacherProfile.subjects.length > 0) {\n      setOpen(false);\n    }\n  }, [teacherProfile]);\n\n  const handleSave = () => {\n    setOpen(false);\n    onComplete();\n  };\n\n  return (\n    <Dialog open={open} onOpenChange={() => {}}> {/* Prevent closing by clicking outside */}\n      <DialogContent className=\"max-w-3xl max-h-[90vh] overflow-y-auto\" onInteractOutside={(e) => e.preventDefault()}>\n        <DialogHeader>\n          <DialogTitle className=\"text-2xl\">Welcome! 🎉</DialogTitle>\n          <DialogDescription>\n            Before you start using the system, please select the subjects you teach.\n          </DialogDescription>\n        </DialogHeader>\n        <SubjectSelection\n          currentSubjects={teacherProfile?.subjects || []}\n          isFirstLogin={true}\n          onSave={handleSave}\n        />\n      </DialogContent>\n    </Dialog>\n  );\n};\n
+import { useEffect, useState } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { SubjectSelection } from '@/components/Settings/SubjectSelection';
+import { useTeacherAuth } from '@/hooks/useTeacherAuth';
+import { useTeacherProfile } from '@/hooks/useTeacherProfile';
+
+interface FirstLoginModalProps {
+  onComplete: () => void;
+}
+
+export const FirstLoginModal = ({ onComplete }: FirstLoginModalProps) => {
+  const [open, setOpen] = useState(false);
+  const { user } = useTeacherAuth();
+  const { data: teacherProfile } = useTeacherProfile(user?.id);
+
+  useEffect(() => {
+    if (teacherProfile && (!teacherProfile.subjects || teacherProfile.subjects.length === 0)) {
+      setOpen(true);
+    } else if (teacherProfile && teacherProfile.subjects && teacherProfile.subjects.length > 0) {
+      setOpen(false);
+    }
+  }, [teacherProfile]);
+
+  const handleSave = () => {
+    setOpen(false);
+    onComplete();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle className="text-2xl">Welcome! 🎉</DialogTitle>
+          <DialogDescription>
+            Before you start using the system, please select the subjects you teach.
+          </DialogDescription>
+        </DialogHeader>
+        <SubjectSelection
+          currentSubjects={teacherProfile?.subjects || []}
+          isFirstLogin={true}
+          onSave={handleSave}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+};
