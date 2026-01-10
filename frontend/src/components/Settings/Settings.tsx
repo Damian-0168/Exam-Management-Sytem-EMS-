@@ -5,11 +5,16 @@ import { TeacherProfile } from './TeacherProfile';
 import { Preferences } from './Preferences';
 import { GradeScales } from './GradeScales';
 import { AuditLogViewer } from './AuditLogViewer';
-import { User, Settings as SettingsIcon, Award, Shield } from 'lucide-react';
+import { SubjectSelection } from './SubjectSelection';
+import { User, Settings as SettingsIcon, Award, Shield, BookOpen } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/usePermissions';
+import { useTeacherAuth } from '@/hooks/useTeacherAuth';
+import { useTeacherProfile } from '@/hooks/useTeacherProfile';
 
 export const Settings = () => {
   const { isAdmin } = useIsAdmin();
+  const { user } = useTeacherAuth();
+  const { data: teacherProfile } = useTeacherProfile(user?.id);
 
   return (
     <div className="space-y-6">
@@ -17,15 +22,19 @@ export const Settings = () => {
         <CardHeader>
           <CardTitle>Settings</CardTitle>
           <CardDescription>
-            Manage your profile, preferences, and system settings
+            Manage your profile, subjects, preferences, and system settings
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'}`}>
+            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'}`}>
               <TabsTrigger value="profile" className="gap-2">
                 <User className="h-4 w-4" />
                 Profile
+              </TabsTrigger>
+              <TabsTrigger value="subjects" className="gap-2">
+                <BookOpen className="h-4 w-4" />
+                Subjects
               </TabsTrigger>
               <TabsTrigger value="preferences" className="gap-2">
                 <SettingsIcon className="h-4 w-4" />
@@ -45,6 +54,13 @@ export const Settings = () => {
             
             <TabsContent value="profile" className="mt-6">
               <TeacherProfile />
+            </TabsContent>
+            
+            <TabsContent value="subjects" className="mt-6">
+              <SubjectSelection
+                currentSubjects={teacherProfile?.subjects || []}
+                isFirstLogin={false}
+              />
             </TabsContent>
             
             <TabsContent value="preferences" className="mt-6">

@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useTeacherAuth } from "./hooks/useTeacherAuth";
 import { TeacherAuth } from "./components/Auth/TeacherAuth";
+import { AdminSetup } from "./components/Auth/AdminSetup";
+import { FirstLoginModal } from "./components/Auth/FirstLoginModal";
 import { DashboardLayout } from "./components/Layout/DashboardLayout";
 import { Dashboard } from "./components/Dashboard/Dashboard";
 import { StudentManagement } from "./components/Students/StudentManagement";
@@ -32,24 +34,33 @@ const AppContent = () => {
   }
 
   if (!session) {
-    return <TeacherAuth />;
+    return (
+      <Routes>
+        <Route path="/" element={<TeacherAuth />} />
+        <Route path="/admin-setup" element={<AdminSetup />} />
+        <Route path="*" element={<TeacherAuth />} />
+      </Routes>
+    );
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<DashboardLayout />}>
-        <Route index element={<Dashboard />} />
-        <Route path="students" element={<StudentManagement />} />
-        <Route path="exams" element={<ExamEventManagement />} />
-        <Route path="exams/" element={<NewExamManagement />} />
-        <Route path="exams/events/:id" element={<ExamEventDetail />} />
-        <Route path="exams/standalone" element={<StandaloneExams />} />
-        <Route path="scores" element={<ScoreEntry />} />
-        <Route path="reports" element={<ReportGeneration />} />
-        <Route path="settings" element={<Settings />} />
-      </Route>
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      <FirstLoginModal onComplete={() => {}} />
+      <Routes>
+        <Route path="/" element={<DashboardLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="students" element={<StudentManagement />} />
+          <Route path="exams" element={<ExamEventManagement />} />
+          <Route path="exams/" element={<NewExamManagement />} />
+          <Route path="exams/events/:id" element={<ExamEventDetail />} />
+          <Route path="exams/standalone" element={<StandaloneExams />} />
+          <Route path="scores" element={<ScoreEntry />} />
+          <Route path="reports" element={<ReportGeneration />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 };
 
