@@ -56,8 +56,6 @@ export const AdminSetup = () => {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters';
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = 'Password must contain uppercase, lowercase, and number';
     }
 
     if (!formData.confirmPassword) {
@@ -88,6 +86,7 @@ export const AdminSetup = () => {
       let schoolId = formData.schoolId;
       let schoolCode = '';
 
+      // Step 1: Handle school creation/selection
       if (mode === 'new-school') {
         schoolCode = generateSchoolCode(formData.schoolName);
 
@@ -112,6 +111,48 @@ export const AdminSetup = () => {
         schoolId = schoolData.id;
       }
 
+      // Step 2: Check if user already exists
+      const { data: existingProfile } = await supabase
+        .from('teacher_profiles')
+        .select('id, email, role')
+        .eq('email', formData.email)
+        .maybeSingle();
+
+      if (existingProfile) {
+        // User exists - update to admin role
+        if (existingProfile.role === 'admin') {
+          throw new Error('This user is already an admin.');
+        }
+
+        // Update existing user to admin
+        const { error: updateError } = await supabase
+          .from('teacher_profiles')
+          .update({
+            role: 'admin',
+            school_id: schoolId,
+            department: formData.department
+          })
+          .eq('id', existingProfile.id);
+
+        if (updateError) throw updateError;
+
+        // Update user metadata
+        const { error: metaError } = await supabase.auth.updateUser({
+          data: { role: 'admin', school_id: schoolId }
+        });
+
+        if (metaError) throw metaError;
+
+        toast({
+          title: 'Success!',
+          description: 'User has been promoted to Admin. Please login with your existing credentials.'
+        });
+
+        setTimeout(() => navigate('/'), 2000);
+        return;
+      }
+
+      // Step 3: Create new auth user (only if doesn't exist)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -124,14 +165,22 @@ export const AdminSetup = () => {
         }
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        // Check if it's a "user already exists" error
+        if (authError.message.includes('already registered') || authError.message.includes('already exists')) {
+          throw new Error('This email is already registered. Please login or use a different email.');
+        }
+        throw authError;
+      }
 
+      // Step 4: Create teacher profile with admin role
       const { error: profileError } = await supabase
         .from('teacher_profiles')
         .insert({
           id: authData.user?.id,
           school_id: schoolId,
           name: formData.name,
+          email: formData.email,
           department: formData.department,
           role: 'admin',
           subjects: []
@@ -140,7 +189,7 @@ export const AdminSetup = () => {
       if (profileError) throw profileError;
 
       const message = mode === 'new-school' 
-        ? `Admin account created! School Code: ${schoolCode}. Please check your email.`
+        ? `Admin account created! School Code: ${schoolCode}. Please check your email to verify.`
         : 'Admin account created! Please check your email to verify.';
 
       toast({
@@ -197,10 +246,17 @@ export const AdminSetup = () => {
           </div>
           <CardTitle className="text-3xl font-bold">Admin Setup</CardTitle>
           <CardDescription>
-            Create an administrator account for your school
+            Create or promote an administrator account
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <Alert className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Note:</strong> If the email is already registered, the existing account will be promoted to Admin. Otherwise, a new account will be created.
+            </AlertDescription>
+          </Alert>
+
           <Tabs value={mode} onValueChange={(v) => setMode(v as any)} className="mb-6">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="new-school" className="gap-2">
@@ -217,7 +273,7 @@ export const AdminSetup = () => {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>First Admin?</strong> Create a new school and become its administrator. A unique school code will be generated.
+                  <strong>First Admin?</strong> Create a new school and become its administrator.
                 </AlertDescription>
               </Alert>
             </TabsContent>
@@ -226,7 +282,7 @@ export const AdminSetup = () => {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>Additional Admin?</strong> Select your existing school to become an additional administrator.
+                  <strong>Additional Admin?</strong> Select your existing school.
                 </AlertDescription>
               </Alert>
             </TabsContent>
@@ -294,11 +350,11 @@ export const AdminSetup = () => {
               </h3>
 
               <div className="space-y-2">
-                <Label htmlFor="name">Your Full Name *</Label>
+                <Label htmlFor="name">Full Name *</Label>
                 <Input
                   id="name"
                   type="text"
-                  placeholder="Enter your full name"
+                  placeholder="Enter full name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className={errors.name ? 'border-destructive' : ''}
@@ -330,6 +386,9 @@ export const AdminSetup = () => {
                     {errors.email}
                   </p>
                 )}
+                <p className="text-xs text-muted-foreground">
+                  If this email exists, the account will be promoted to Admin
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -357,7 +416,7 @@ export const AdminSetup = () => {
                   </p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Must contain: uppercase, lowercase, number (min 6 characters)
+                  Required only for new accounts
                 </p>
               </div>
 
@@ -395,7 +454,7 @@ export const AdminSetup = () => {
               size="lg"
               disabled={loading}
             >
-              {loading ? 'Creating Admin Account...' : 'Create Admin Account'}
+              {loading ? 'Processing...' : 'Create/Promote Admin Account'}
             </Button>
 
             <Button
