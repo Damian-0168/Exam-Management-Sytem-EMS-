@@ -2,7 +2,8 @@
 
 ## Original Problem Statement
 Build a School Examination & Academic Management System with:
-- Role-Based Access Control (RBAC) for Admin and Teacher roles
+- Role-Based Access Control (RBAC) for Admin, Teacher, and Super Admin roles
+- Separate Admin login page and Admin dashboard
 - Secure PDF uploads with signed URLs and watermarking
 - Audit logging for critical user actions
 - Multi-school support with school codes
@@ -23,23 +24,58 @@ Build a School Examination & Academic Management System with:
 │   └── server.py    # Main FastAPI app
 ├── frontend/        # React/Vite frontend
 │   ├── src/
-│   │   ├── components/Auth/  # AdminSetup, TeacherAuth, SchoolSelector
-│   │   ├── hooks/            # useTeacherAuth
-│   │   └── integrations/     # Supabase client
+│   │   ├── components/
+│   │   │   ├── Auth/       # AdminLogin, AdminSetup, TeacherAuth, ProtectedRoute
+│   │   │   ├── Admin/      # AdminDashboard
+│   │   │   ├── Layout/     # DashboardLayout, AdminLayout
+│   │   │   └── ...
+│   │   ├── hooks/          # useTeacherAuth, useUserRole
+│   │   └── integrations/   # Supabase client
 │   └── supabase/migrations/  # SQL migration files
 └── memory/          # Project documentation
 ```
 
+## Route Structure
+
+### Public Routes (Unauthenticated)
+- `/` - Teacher login
+- `/admin/login` - Admin/Super Admin login
+- `/admin-setup` - Create new admin account
+
+### Teacher Routes (Protected)
+- `/teacher/dashboard` - Teacher home
+- `/teacher/students` - View assigned students
+- `/teacher/exams` - View/manage exams
+- `/teacher/scores` - Score entry
+- `/teacher/reports` - Generate reports
+- `/teacher/settings` - Profile settings
+
+### Admin Routes (Protected - Admin/Super Admin only)
+- `/admin/dashboard` - Admin home with school-wide stats
+- `/admin/students` - All students management
+- `/admin/teachers` - Teacher management
+- `/admin/exams` - All exam events management
+- `/admin/reports` - School-wide reports
+- `/admin/settings` - School settings
+
+### Super Admin Routes (Future - Super Admin only)
+- `/super-admin/dashboard` - Cross-school management
+- `/super-admin/schools` - Manage all schools
+- `/super-admin/admins` - Manage admins
+
 ## Current Status
 
-### ✅ Completed (Phase 1 - Foundation)
+### ✅ Completed
 - [x] Backend scaffolding with FastAPI routers
 - [x] Frontend auth components (AdminSetup, TeacherAuth)
+- [x] **Admin Login page** (`/admin/login`) - Dark theme, professional design
+- [x] **Admin Dashboard** - Stats cards, activity feed, quick actions
+- [x] **Admin Layout** - Sidebar navigation for admin routes
+- [x] **Role-based routing** - ProtectedRoute component
+- [x] **Route guards** - Redirect based on user role
 - [x] School selector dropdown component
 - [x] Teacher signup flow with Supabase Auth
-- [x] Admin creation flow (NEW: handles "user already registered" error)
-- [x] API health check endpoints
-- [x] Status check CRUD (MongoDB)
+- [x] Admin creation flow with proper redirect to /admin/login
 - [x] Migration files created for RBAC
 
 ### 🔄 In Progress
@@ -49,28 +85,30 @@ Build a School Examination & Academic Management System with:
   - Instructions: `/app/MIGRATION_INSTRUCTIONS.md`
 
 ### ⏳ Pending (After Migrations Applied)
-- [ ] Verify complete Admin creation flow works end-to-end
-- [ ] Verify Teacher signup flow works end-to-end
-- [ ] Test role-based permissions
+- [ ] Test complete Admin login flow with real admin account
+- [ ] Verify role-based redirects work correctly
+- [ ] Implement Teacher management page for admins
 
 ## P0 - Critical (Next Steps)
 1. Apply database migrations to Supabase
-2. Test Admin creation (new user + promote existing user)
-3. Test Teacher signup
-4. Integrate role-based UI permissions
+2. Create test admin account and verify login flow
+3. Test role-based access control end-to-end
 
 ## P1 - High Priority
 - [ ] PDF watermarking implementation
 - [ ] Secure PDF viewer with signed URLs
 - [ ] Audit logging frontend integration
-- [ ] Modern exam card redesign
+- [ ] Teacher management page (/admin/teachers)
 
 ## P2 - Medium Priority
 - [ ] PDF version history
 - [ ] Bulk student import (CSV/Excel)
 - [ ] System configuration UI
+- [ ] Real audit logs integration (replace mock data)
 
 ## P3 - Future/Backlog
+- [ ] Super Admin dashboard
+- [ ] Cross-school management
 - [ ] Advanced analytics & reporting
 - [ ] Notification system (SendGrid)
 - [ ] Question bank
@@ -84,7 +122,7 @@ id UUID PRIMARY KEY
 school_id UUID REFERENCES schools(id)
 name TEXT NOT NULL
 email TEXT              -- Added via migration
-role TEXT DEFAULT 'teacher'  -- Added via migration: 'teacher', 'admin', 'super-admin'
+role TEXT DEFAULT 'teacher'  -- 'teacher', 'admin', 'super-admin'
 department TEXT
 subjects TEXT[]
 created_at, updated_at
@@ -112,14 +150,17 @@ contact_email TEXT
 
 ## Important Files
 - `/app/MIGRATION_INSTRUCTIONS.md` - How to apply migrations
-- `/app/frontend/supabase/migrations/` - SQL migration files
-- `/app/frontend/src/components/Auth/AdminSetup.tsx` - Admin creation
-- `/app/frontend/src/components/Auth/TeacherAuth.tsx` - Teacher auth
-- `/app/backend/server.py` - Main API server
+- `/app/frontend/src/components/Auth/AdminLogin.tsx` - Admin login page
+- `/app/frontend/src/components/Admin/AdminDashboard.tsx` - Admin dashboard
+- `/app/frontend/src/components/Auth/ProtectedRoute.tsx` - Route guards
+- `/app/frontend/src/App.tsx` - Main routing configuration
 
 ## Test Reports
-- `/app/test_reports/iteration_1.json` - First test run results
-- `/app/tests/test_backend_api.py` - Backend API tests
+- `/app/test_reports/iteration_1.json` - Backend API tests
+- `/app/test_reports/iteration_2.json` - Frontend routing tests
+
+## MOCKED Data
+- **AdminDashboard.tsx**: Recent activities are mocked (hardcoded array). Will fetch from audit_logs table when available.
 
 ---
-*Last updated: 2026-01-21*
+*Last updated: 2026-01-24*
