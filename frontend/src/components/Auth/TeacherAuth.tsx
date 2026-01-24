@@ -307,6 +307,12 @@ export const TeacherAuth = () => {
                       Passwords match
                     </p>
                   )}
+                  {signUpData.confirmPassword && !passwordsMatch && (
+                    <p className="text-sm text-amber-600 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      Passwords don't match
+                    </p>
+                  )}
                   {errors.confirmPassword && (
                     <p className="text-sm text-destructive flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
