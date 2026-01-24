@@ -30,21 +30,31 @@ export const ProtectedRoute = ({
 
       try {
         // First check teacher_profiles for role
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('teacher_profiles')
           .select('role')
           .eq('id', session.user.id)
           .maybeSingle();
 
+        if (profileError) {
+          console.log('Profile query error (role column may not exist):', profileError.message);
+        }
+
         // Also check user_metadata
         const metadataRole = session.user.user_metadata?.role;
+        
+        console.log('ProtectedRoute - Profile role:', profile?.role, 'Metadata role:', metadataRole);
 
-        // Use profile role first, then metadata, then default to 'teacher'
-        const role = (profile?.role || metadataRole || 'teacher') as Role;
+        // Use metadata role first (set during signup), then profile role, then default to 'teacher'
+        // This prioritizes the role set during account creation
+        const role = (metadataRole || profile?.role || 'teacher') as Role;
+        console.log('ProtectedRoute - Final determined role:', role);
         setUserRole(role);
       } catch (error) {
         console.error('Error fetching user role:', error);
-        setUserRole('teacher'); // Default to teacher on error
+        // On error, check metadata as fallback
+        const metadataRole = session.user.user_metadata?.role;
+        setUserRole((metadataRole || 'teacher') as Role);
       } finally {
         setLoading(false);
       }
