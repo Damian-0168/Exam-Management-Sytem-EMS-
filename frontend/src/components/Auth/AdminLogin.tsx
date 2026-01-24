@@ -51,9 +51,15 @@ export const AdminLogin = () => {
         .eq('id', authData.user.id)
         .maybeSingle();
 
-      // Also check user_metadata for role
+      if (profileError) {
+        console.log('Profile query note:', profileError.message);
+      }
+
+      // Prioritize user_metadata role (set during signup) over profile role
       const metadataRole = authData.user.user_metadata?.role;
-      const userRole = profile?.role || metadataRole || 'teacher';
+      const userRole = metadataRole || profile?.role || 'teacher';
+      
+      console.log('AdminLogin - Metadata role:', metadataRole, 'Profile role:', profile?.role, 'Final:', userRole);
 
       // Only allow admin and super-admin to login here
       if (userRole !== 'admin' && userRole !== 'super-admin') {
@@ -64,7 +70,7 @@ export const AdminLogin = () => {
 
       toast({
         title: 'Welcome back!',
-        description: `Logged in as ${profile?.name || formData.email}`
+        description: `Logged in as ${profile?.name || authData.user.user_metadata?.name || formData.email}`
       });
 
       // Redirect based on role
