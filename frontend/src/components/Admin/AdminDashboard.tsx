@@ -12,14 +12,16 @@ import {
   Clock,
   User,
   Activity,
-  School
+  School,
+  UserCog,
+  LogOut
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTeacherAuth } from '@/hooks/useTeacherAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
 
 interface DashboardStats {
   totalStudents: number;
@@ -37,6 +39,12 @@ interface RecentActivity {
   timestamp: string;
 }
 
+interface Teacher {
+  id: string;
+  name: string;
+  department: string | null;
+}
+
 export const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user, signOut } = useTeacherAuth();
@@ -51,70 +59,94 @@ export const AdminDashboard = () => {
   const [schoolName, setSchoolName] = useState('');
   const [adminName, setAdminName] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [selectedTeacher, setSelectedTeacher] = useState<string>('');
 
   useEffect(() => {
-    fetchDashboardData();
+    if (user) {
+      fetchDashboardData();
+    } else {
+      setLoading(false);
+    }
   }, [user]);
 
   const fetchDashboardData = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
+      setError(null);
 
       // Get admin profile and school info
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('teacher_profiles')
         .select('name, school_id')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (profile) {
-        setAdminName(profile.name || user.user_metadata?.name || 'Admin');
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
+      }
 
+      // Use user metadata as fallback
+      const userName = profile?.name || user.user_metadata?.name || user.email?.split('@')[0] || 'Admin';
+      setAdminName(userName);
+
+      const schoolId = profile?.school_id || user.user_metadata?.school_id;
+
+      if (schoolId) {
         // Get school name
-        if (profile.school_id) {
-          const { data: school } = await supabase
-            .from('schools')
-            .select('name')
-            .eq('id', profile.school_id)
-            .single();
-          
-          if (school) setSchoolName(school.name);
+        const { data: school } = await supabase
+          .from('schools')
+          .select('name')
+          .eq('id', schoolId)
+          .single();
+        
+        if (school) setSchoolName(school.name);
 
-          // Get students count for this school
-          const { count: studentsCount } = await supabase
-            .from('students')
-            .select('*', { count: 'exact', head: true })
-            .eq('school_id', profile.school_id);
+        // Get students count for this school
+        const { count: studentsCount } = await supabase
+          .from('students')
+          .select('*', { count: 'exact', head: true })
+          .eq('school_id', schoolId);
 
-          // Get teachers count for this school
-          const { count: teachersCount } = await supabase
-            .from('teacher_profiles')
-            .select('*', { count: 'exact', head: true })
-            .eq('school_id', profile.school_id);
+        // Get teachers count for this school
+        const { data: teachersList, count: teachersCount } = await supabase
+          .from('teacher_profiles')
+          .select('id, name, department', { count: 'exact' })
+          .eq('school_id', schoolId);
 
-          // Get exam events count
-          const { count: examEventsCount } = await supabase
-            .from('exam_events')
-            .select('*', { count: 'exact', head: true });
-
-          // Get exams by type
-          const { data: exams } = await supabase
-            .from('exams')
-            .select('type');
-
-          const testsCount = exams?.filter(e => e.type === 'test').length || 0;
-          const practicalsCount = exams?.filter(e => e.type === 'practical').length || 0;
-
-          setStats({
-            totalStudents: studentsCount || 0,
-            totalTeachers: teachersCount || 0,
-            totalExamEvents: examEventsCount || 0,
-            totalTests: testsCount,
-            totalPracticals: practicalsCount
-          });
+        if (teachersList) {
+          setTeachers(teachersList as Teacher[]);
         }
+
+        // Get exam events count
+        const { count: examEventsCount } = await supabase
+          .from('exam_events')
+          .select('*', { count: 'exact', head: true });
+
+        // Get exams by type
+        const { data: exams } = await supabase
+          .from('exams')
+          .select('type');
+
+        const testsCount = exams?.filter(e => e.type === 'test').length || 0;
+        const practicalsCount = exams?.filter(e => e.type === 'practical').length || 0;
+
+        setStats({
+          totalStudents: studentsCount || 0,
+          totalTeachers: teachersCount || 0,
+          totalExamEvents: examEventsCount || 0,
+          totalTests: testsCount,
+          totalPracticals: practicalsCount
+        });
+      } else {
+        // No school assigned - show empty stats
+        console.warn('No school_id found for admin user');
       }
 
       // Mock recent activities (in production, this would come from audit_logs)
