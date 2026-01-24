@@ -180,16 +180,26 @@ export const TeacherAuth = () => {
                   Sign In
                 </Button>
                 
-                <div className="text-center pt-4 border-t">
+                <div className="text-center pt-4 border-t space-y-2">
                   <Button
                     type="button"
                     variant="link"
                     className="text-sm"
-                    onClick={() => navigate('/admin-setup')}
+                    onClick={() => navigate('/admin/login')}
                   >
                     <Shield className="h-4 w-4 mr-2" />
-                    Create Admin Account
+                    Admin Login
                   </Button>
+                  <div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="text-xs text-muted-foreground"
+                      onClick={() => navigate('/admin-setup')}
+                    >
+                      Create Admin Account
+                    </Button>
+                  </div>
                 </div>
               </form>
             </TabsContent>
