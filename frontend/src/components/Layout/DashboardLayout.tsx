@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useLocation, Link } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -9,37 +9,69 @@ import {
   BarChart3, 
   Settings, 
   LogOut,
-  Menu,
   Bell,
   Search,
   User,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  School
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useExamStore } from '@/store/examStore';
 import { useTeacherAuth } from '@/hooks/useTeacherAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Students', href: '/students', icon: Users },
-  { name: 'Exams', href: '/exams', icon: BookOpen },
-  { name: 'Score Entry', href: '/scores', icon: FileText },
-  { name: 'Reports', href: '/reports', icon: BarChart3 },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Dashboard', href: '/teacher/dashboard', icon: LayoutDashboard },
+  { name: 'Students', href: '/teacher/students', icon: Users },
+  { name: 'Exams', href: '/teacher/exams', icon: BookOpen },
+  { name: 'Score Entry', href: '/teacher/scores', icon: FileText },
+  { name: 'Reports', href: '/teacher/reports', icon: BarChart3 },
+  { name: 'Settings', href: '/teacher/settings', icon: Settings },
 ];
 
 export const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [schoolName, setSchoolName] = useState('');
   const location = useLocation();
   const { currentTeacher, dashboardStats } = useExamStore();
-  const { signOut } = useTeacherAuth();
+  const { signOut, user } = useTeacherAuth();
+
+  useEffect(() => {
+    const fetchSchoolName = async () => {
+      if (!user) return;
+      
+      try {
+        // Get teacher profile to find school_id
+        const { data: profile } = await supabase
+          .from('teacher_profiles')
+          .select('school_id')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        const schoolId = profile?.school_id || user.user_metadata?.school_id;
+        
+        if (schoolId) {
+          const { data: school } = await supabase
+            .from('schools')
+            .select('name')
+            .eq('id', schoolId)
+            .single();
+          
+          if (school) setSchoolName(school.name);
+        }
+      } catch (error) {
+        console.error('Error fetching school:', error);
+      }
+    };
+
+    fetchSchoolName();
+  }, [user]);
 
   const isActive = (path: string) => {
-    if (path === '/') return location.pathname === '/';
+    if (path === '/teacher/dashboard') return location.pathname === '/teacher/dashboard' || location.pathname === '/teacher';
     return location.pathname.startsWith(path);
   };
 
@@ -148,6 +180,12 @@ export const DashboardLayout = () => {
 
               {/* Quick Stats */}
               <div className="hidden md:flex items-center space-x-4 text-sm text-gray-600">
+                {schoolName && (
+                  <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700 font-medium">
+                    <School className="w-3 h-3 mr-1" />
+                    {schoolName}
+                  </Badge>
+                )}
                 <div className="flex items-center">
                   <Users className="w-4 h-4 mr-1" />
                   <span>{dashboardStats?.totalStudents || 0} Students</span>

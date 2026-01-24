@@ -1,4 +1,4 @@
-# 🚨 CRITICAL: Run This Migration First!
+# 🚨 CRITICAL: Run These Migrations First!
 
 ## The "role" Column Error
 
@@ -6,7 +6,7 @@
 
 **Cause:** Database migration has not been executed yet.
 
-**Solution:** Run the migration in Supabase SQL Editor.
+**Solution:** Run the migrations in Supabase SQL Editor.
 
 ---
 
@@ -18,7 +18,7 @@
 2. Navigate to: **SQL Editor** (left sidebar)
 3. Click: **New Query**
 
-### **Step 2: Run the Migration**
+### **Step 2: Run the Main Migration**
 
 Copy and paste this migration file content into the SQL Editor:
 
@@ -26,7 +26,15 @@ Copy and paste this migration file content into the SQL Editor:
 
 Click **RUN** to execute.
 
-### **Step 3: Verify Migration Success**
+### **Step 3: Run the Email Column Migration (Optional but Recommended)**
+
+Copy and paste this migration file content into the SQL Editor:
+
+**File:** `/app/frontend/supabase/migrations/20250126000004_add_email_to_teacher_profiles.sql`
+
+Click **RUN** to execute.
+
+### **Step 4: Verify Migration Success**
 
 Run this verification query:
 
@@ -35,12 +43,12 @@ Run this verification query:
 SELECT column_name, data_type 
 FROM information_schema.columns 
 WHERE table_name = 'teacher_profiles' 
-AND column_name = 'role';
+AND column_name IN ('role', 'email');
 
--- Should return: role | text
+-- Should return two rows: role | text, email | text
 ```
 
-If you see the role column, migration is successful! ✅
+If you see both columns, migration is successful! ✅
 
 ### **Step 4: Verify School Code Column**
 

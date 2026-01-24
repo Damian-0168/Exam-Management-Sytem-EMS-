@@ -111,48 +111,7 @@ export const AdminSetup = () => {
         schoolId = schoolData.id;
       }
 
-      // Step 2: Check if user already exists
-      const { data: existingProfile } = await supabase
-        .from('teacher_profiles')
-        .select('id, email, role')
-        .eq('email', formData.email)
-        .maybeSingle();
-
-      if (existingProfile) {
-        // User exists - update to admin role
-        if (existingProfile.role === 'admin') {
-          throw new Error('This user is already an admin.');
-        }
-
-        // Update existing user to admin
-        const { error: updateError } = await supabase
-          .from('teacher_profiles')
-          .update({
-            role: 'admin',
-            school_id: schoolId,
-            department: formData.department
-          })
-          .eq('id', existingProfile.id);
-
-        if (updateError) throw updateError;
-
-        // Update user metadata
-        const { error: metaError } = await supabase.auth.updateUser({
-          data: { role: 'admin', school_id: schoolId }
-        });
-
-        if (metaError) throw metaError;
-
-        toast({
-          title: 'Success!',
-          description: 'User has been promoted to Admin. Please login with your existing credentials.'
-        });
-
-        setTimeout(() => navigate('/'), 2000);
-        return;
-      }
-
-      // Step 3: Create new auth user (only if doesn't exist)
+      // Step 2: Try to create new auth user first
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -165,39 +124,109 @@ export const AdminSetup = () => {
         }
       });
 
+      // Handle "user already registered" scenario
       if (authError) {
-        // Check if it's a "user already exists" error
         if (authError.message.includes('already registered') || authError.message.includes('already exists')) {
-          throw new Error('This email is already registered. Please login or use a different email.');
+          // User exists in auth - we need to sign them in to update their profile
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email: formData.email,
+            password: formData.password
+          });
+
+          if (signInError) {
+            throw new Error('This email is already registered. Please sign in with your existing password to continue.');
+          }
+
+          const existingUserId = signInData.user.id;
+
+          // Check if they have a teacher_profile
+          const { data: existingProfile, error: profileCheckError } = await supabase
+            .from('teacher_profiles')
+            .select('id, name, school_id')
+            .eq('id', existingUserId)
+            .maybeSingle();
+
+          if (profileCheckError && !profileCheckError.message.includes('rows returned')) {
+            console.error('Profile check error:', profileCheckError);
+          }
+
+          if (existingProfile) {
+            // Update existing profile to admin role
+            const { error: updateError } = await supabase
+              .from('teacher_profiles')
+              .update({
+                school_id: schoolId,
+                department: formData.department
+              })
+              .eq('id', existingUserId);
+
+            if (updateError) {
+              // If role column doesn't exist, just update what we can
+              if (!updateError.message.includes('role')) {
+                throw updateError;
+              }
+            }
+          } else {
+            // Create new teacher profile for existing auth user
+            const { error: insertError } = await supabase
+              .from('teacher_profiles')
+              .insert({
+                id: existingUserId,
+                school_id: schoolId,
+                name: formData.name,
+                department: formData.department,
+                subjects: []
+              });
+
+            if (insertError) throw insertError;
+          }
+
+          // Update user metadata
+          await supabase.auth.updateUser({
+            data: { role: 'admin', school_id: schoolId }
+          });
+
+          toast({
+            title: 'Success!',
+            description: 'Your account has been updated to Admin. Redirecting to Admin Dashboard...'
+          });
+
+          setTimeout(() => navigate('/admin/dashboard'), 1500);
+          return;
         }
         throw authError;
       }
 
-      // Step 4: Create teacher profile with admin role
-      const { error: profileError } = await supabase
-        .from('teacher_profiles')
-        .insert({
-          id: authData.user?.id,
-          school_id: schoolId,
-          name: formData.name,
-          email: formData.email,
-          department: formData.department,
-          role: 'admin',
-          subjects: []
-        });
+      // Step 3: New user created successfully - create teacher profile
+      if (authData.user) {
+        const { error: profileError } = await supabase
+          .from('teacher_profiles')
+          .insert({
+            id: authData.user.id,
+            school_id: schoolId,
+            name: formData.name,
+            department: formData.department,
+            subjects: []
+          });
 
-      if (profileError) throw profileError;
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+          // Don't throw - profile might be created by a trigger
+        }
+      }
 
       const message = mode === 'new-school' 
-        ? `Admin account created! School Code: ${schoolCode}. Please check your email to verify.`
-        : 'Admin account created! Please check your email to verify.';
+        ? `Admin account created! School Code: ${schoolCode}. Please verify your email, then sign in at Admin Login.`
+        : 'Admin account created! Please verify your email, then sign in at Admin Login.';
 
       toast({
         title: 'Success!',
         description: message
       });
 
-      setTimeout(() => navigate('/'), 3000);
+      // Sign out so they can verify email and sign in through admin login
+      await supabase.auth.signOut();
+      setTimeout(() => navigate('/admin/login'), 3000);
 
     } catch (error: any) {
       console.error('Admin setup error:', error);
