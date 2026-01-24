@@ -216,15 +216,17 @@ export const AdminSetup = () => {
       }
 
       const message = mode === 'new-school' 
-        ? `Admin account created! School Code: ${schoolCode}. Please check your email to verify.`
-        : 'Admin account created! Please check your email to verify.';
+        ? `Admin account created! School Code: ${schoolCode}. Please verify your email, then sign in at Admin Login.`
+        : 'Admin account created! Please verify your email, then sign in at Admin Login.';
 
       toast({
         title: 'Success!',
         description: message
       });
 
-      setTimeout(() => navigate('/'), 3000);
+      // Sign out so they can verify email and sign in through admin login
+      await supabase.auth.signOut();
+      setTimeout(() => navigate('/admin/login'), 3000);
 
     } catch (error: any) {
       console.error('Admin setup error:', error);
