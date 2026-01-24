@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useLocation, Link } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -9,19 +9,19 @@ import {
   BarChart3, 
   Settings, 
   LogOut,
-  Menu,
   Bell,
   Search,
   User,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  School
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useExamStore } from '@/store/examStore';
 import { useTeacherAuth } from '@/hooks/useTeacherAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const navigation = [
   { name: 'Dashboard', href: '/teacher/dashboard', icon: LayoutDashboard },
@@ -34,9 +34,41 @@ const navigation = [
 
 export const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [schoolName, setSchoolName] = useState('');
   const location = useLocation();
   const { currentTeacher, dashboardStats } = useExamStore();
-  const { signOut } = useTeacherAuth();
+  const { signOut, user } = useTeacherAuth();
+
+  useEffect(() => {
+    const fetchSchoolName = async () => {
+      if (!user) return;
+      
+      try {
+        // Get teacher profile to find school_id
+        const { data: profile } = await supabase
+          .from('teacher_profiles')
+          .select('school_id')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        const schoolId = profile?.school_id || user.user_metadata?.school_id;
+        
+        if (schoolId) {
+          const { data: school } = await supabase
+            .from('schools')
+            .select('name')
+            .eq('id', schoolId)
+            .single();
+          
+          if (school) setSchoolName(school.name);
+        }
+      } catch (error) {
+        console.error('Error fetching school:', error);
+      }
+    };
+
+    fetchSchoolName();
+  }, [user]);
 
   const isActive = (path: string) => {
     if (path === '/teacher/dashboard') return location.pathname === '/teacher/dashboard' || location.pathname === '/teacher';
