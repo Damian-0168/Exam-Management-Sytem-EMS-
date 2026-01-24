@@ -188,10 +188,10 @@ export const AdminSetup = () => {
 
           toast({
             title: 'Success!',
-            description: 'Your account has been updated to Admin. You are now signed in.'
+            description: 'Your account has been updated to Admin. Redirecting to Admin Dashboard...'
           });
 
-          setTimeout(() => navigate('/'), 1500);
+          setTimeout(() => navigate('/admin/dashboard'), 1500);
           return;
         }
         throw authError;
