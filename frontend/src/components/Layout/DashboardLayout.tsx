@@ -24,12 +24,12 @@ import { useExamStore } from '@/store/examStore';
 import { useTeacherAuth } from '@/hooks/useTeacherAuth';
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Students', href: '/students', icon: Users },
-  { name: 'Exams', href: '/exams', icon: BookOpen },
-  { name: 'Score Entry', href: '/scores', icon: FileText },
-  { name: 'Reports', href: '/reports', icon: BarChart3 },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Dashboard', href: '/teacher/dashboard', icon: LayoutDashboard },
+  { name: 'Students', href: '/teacher/students', icon: Users },
+  { name: 'Exams', href: '/teacher/exams', icon: BookOpen },
+  { name: 'Score Entry', href: '/teacher/scores', icon: FileText },
+  { name: 'Reports', href: '/teacher/reports', icon: BarChart3 },
+  { name: 'Settings', href: '/teacher/settings', icon: Settings },
 ];
 
 export const DashboardLayout = () => {
