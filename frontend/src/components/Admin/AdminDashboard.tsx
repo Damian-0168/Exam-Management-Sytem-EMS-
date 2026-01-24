@@ -296,6 +296,18 @@ export const AdminDashboard = () => {
     return 'Just now';
   };
 
+  const handleSwitchToTeacher = (teacherId: string) => {
+    if (!teacherId) return;
+    // Store original admin info and switch to teacher view
+    localStorage.setItem('adminImpersonating', JSON.stringify({
+      adminId: user?.id,
+      adminName: adminName,
+      teacherId: teacherId
+    }));
+    // Navigate to teacher dashboard with the selected teacher context
+    navigate(`/teacher/dashboard?viewAs=${teacherId}`);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -314,13 +326,36 @@ export const AdminDashboard = () => {
           </h1>
           <div className="flex items-center gap-2 mt-1">
             <School className="w-4 h-4 text-gray-500" />
-            <span className="text-gray-600">{schoolName || 'School Administration'}</span>
-            <Badge className="ml-2 bg-blue-100 text-blue-800">Admin</Badge>
+            <Badge variant="outline" className="bg-white border-blue-300 text-blue-700 font-medium px-3">
+              {schoolName || 'No School Assigned'}
+            </Badge>
+            <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">Admin</Badge>
           </div>
         </div>
-        <Button variant="outline" onClick={signOut}>
-          Sign Out
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* Switch to Teacher View */}
+          {teachers.length > 0 && (
+            <div className="flex items-center gap-2">
+              <UserCog className="w-4 h-4 text-gray-500" />
+              <Select value={selectedTeacher} onValueChange={handleSwitchToTeacher}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="View as Teacher..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {teachers.map((teacher) => (
+                    <SelectItem key={teacher.id} value={teacher.id}>
+                      {teacher.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <Button variant="outline" onClick={signOut}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
