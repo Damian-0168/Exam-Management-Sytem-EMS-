@@ -39,7 +39,7 @@ export const DashboardLayout = () => {
   const { signOut } = useTeacherAuth();
 
   const isActive = (path: string) => {
-    if (path === '/') return location.pathname === '/';
+    if (path === '/teacher/dashboard') return location.pathname === '/teacher/dashboard' || location.pathname === '/teacher';
     return location.pathname.startsWith(path);
   };
 
