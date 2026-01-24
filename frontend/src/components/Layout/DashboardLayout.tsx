@@ -180,6 +180,12 @@ export const DashboardLayout = () => {
 
               {/* Quick Stats */}
               <div className="hidden md:flex items-center space-x-4 text-sm text-gray-600">
+                {schoolName && (
+                  <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700 font-medium">
+                    <School className="w-3 h-3 mr-1" />
+                    {schoolName}
+                  </Badge>
+                )}
                 <div className="flex items-center">
                   <Users className="w-4 h-4 mr-1" />
                   <span>{dashboardStats?.totalStudents || 0} Students</span>
